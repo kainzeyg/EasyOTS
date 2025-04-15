@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Секретное сообщение</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        .button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .secret-value {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        textarea::placeholder, input::placeholder {
+            color: #ADACAF;
+        }
+        .link {
+            margin-top: 15px;
+            color: #0033A1;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {{ if .ShowForm }}
+        <div class="form-group">
+            <textarea id="secret" name="secret" rows="5" placeholder="Что Вы хотите зашифровать?"></textarea>
+        </div>
+        <div class="form-group">
+            <input type="number" id="ttlday" name="ttlday" placeholder="Сколько дней должен жить секрет?">
+        </div>
+        <button class="button" style="background-color: {{ .ButtonColor }};" onclick="createSecret()">{{ .ButtonText }}</button>
+        {{ else if .ShowViewButton }}
+        <button class="button" style="background-color: {{ .ButtonColor }};" onclick="viewSecret('{{ .PageID }}')">{{ .ButtonText }}</button>
+        <div id="secret-value" class="secret-value hidden"></div>
+        {{ else if .ShowSecret }}
+        <button class="button" style="background-color: {{ .ButtonColor }};" onclick="copyToClipboard('secret-value')">{{ .ButtonText }}</button>
+        <div id="secret-value" class="secret-value">{{ .SecretValue }}</div>
+        {{ end }}
+    </div>
+
+    <script>
+        function createSecret() {
+            const secret = document.getElementById('secret').value;
+            const ttlday = document.getElementById('ttlday').value;
+            const ttl = ttlday ? parseInt(ttlday) * 86400 : 0;
+
+            fetch('/api/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `secret=${encodeURIComponent(secret)}&ttl=${ttl}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.querySelector('.container');
+                container.innerHTML = `
+                    <button class="button" style="background-color: #0033A1;" onclick="copyToClipboard('link-value')">Скопировать ссылку</button>
+                    <div id="link-value" class="link">${data.link}</div>
+                    <button class="button" style="background-color: #00955E; margin-top: 20px;" onclick="location.reload()">Создать новый секрет</button>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при создании секрета');
+            });
+        }
+
+        function viewSecret(pageId) {
+            fetch(`/api/view/${pageId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const secretDiv = document.getElementById('secret-value');
+                    secretDiv.textContent = data.secret;
+                    secretDiv.classList.remove('hidden');
+                    
+                    const button = document.querySelector('.button');
+                    button.textContent = "Скопировать текст";
+                    button.onclick = () => copyToClipboard('secret-value');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ошибка при получении секрета');
+                });
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            navigator.clipboard.writeText(element.textContent)
+                //.then(() => alert('Скопировано в буфер обмена'))
+                .catch(err => console.error('Ошибка копирования:', err));
+        }
+    </script>
+</body>
+</html>
