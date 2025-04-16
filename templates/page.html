@@ -102,6 +102,12 @@
         .show {
             opacity: 1;
         }
+        .file-upload-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -114,11 +120,16 @@
         {{ if .ShowForm }}
         <div class="form-group">
             {{ if .EnableFileUpload }}
-            <label for="file-input" class="file-label">Прикрепить файл</label>
+            <div class="file-upload-wrapper">
+                <label for="file-input" class="file-label">Прикрепить файл</label>
+                <span id="file-name" class="file-name">Файл не выбран (допустимо 10 Мб)</span>
+            </div>
             <input type="file" id="file-input">
             <span id="file-name" class="file-name"></span>
             {{ end }}
-            <textarea id="secret" rows="5" placeholder="Что Вы хотите зашифровать?"></textarea>
+            <div class="file-upload-wrapper">
+                <textarea id="secret" rows="5" placeholder="Что Вы хотите зашифровать?"></textarea>
+            </div>
         </div>
         <div class="form-group">
             <input type="number" id="ttlday" placeholder="Сколько дней должен жить секрет?">
