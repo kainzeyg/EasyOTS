@@ -1,5 +1,13 @@
 # EasyOTS
 
+### **Внешний вид приложения**
+Создание секрета \
+![image](https://github.com/user-attachments/assets/65c62505-32ec-4b1a-b811-837ba52d842e) \
+Получение секрета \
+![image](https://github.com/user-attachments/assets/1081df05-e0fe-4cf0-924b-8d53221d51dd)
+
+---
+
 Полное описание всех API-методов с учётом добавленного функционала для файлов:
 
 ---
@@ -256,3 +264,5 @@ http {
     }
 }
 ```
+
+
