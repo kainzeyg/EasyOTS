@@ -128,11 +128,131 @@ curl http://localhost:8080/api/view/<pageID>
 
 Новый функционал активируется только при `ENABLE_FILE_UPLOAD=true`.
 
-### Запуск приложения:
+### **Запуск приложения**:
 ```bash
 # 1.Склонировать проект
 # 2.Перейти в каталог проекта
 cd <project directory>
 # 3.Сборка и запуск
 sudo docker-compose up -d --build
+```
+
+### Пример настройки внешнего Nginx:
+Структура хранения сертификата
+```
+/etc/nginx/ssl/
+├── yourdomain.crt
+└── yourdomain.key
+```
+
+Пример nginx.conf
+```bash
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    # Настройки SSL (замените пути)
+    ssl_certificate      /etc/nginx/ssl/yourdomain.crt;
+    ssl_certificate_key  /etc/nginx/ssl/yourdomain.key;
+    ssl_protocols        TLSv1.3;  # Только TLS 1.3
+    ssl_ciphers          TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache    shared:SSL:10m;
+    ssl_session_timeout  10m;
+    ssl_ecdh_curve       X25519:secp521r1:secp384r1;
+
+    # Upstream для вашего приложения
+    upstream app_server {
+        server your_app_server_ip:8080; # Замените на IP приложения
+        keepalive 32;
+    }
+
+    # HTTP → HTTPS редирект
+    server {
+        listen 80;
+        server_name yourdomain.com www.yourdomain.com;
+        
+        # Редирект на /page с HTTPS
+        return 301 https://$host/page$request_uri;
+    }
+
+    # Основной HTTPS сервер
+    server {
+        listen 443 ssl http2;
+        server_name yourdomain.com www.yourdomain.com;
+
+        # Security headers
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options DENY;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection "1; mode=block";
+        add_header Referrer-Policy "strict-origin-when-cross-origin";
+
+        # Лимит загрузки файлов
+        client_max_body_size 10M;
+
+        # Корневой редирект на /page
+        location = / {
+            return 302 /page;
+        }
+
+        # Статика
+        location /static/ {
+            alias /var/www/static/;
+            expires 365d;
+            access_log off;
+            add_header Cache-Control "public";
+        }
+
+        # API endpoints
+        location /api/ {
+            proxy_pass http://app_server;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 300s;
+            proxy_send_timeout 300s;
+        }
+
+        # Все остальные запросы
+        location / {
+            proxy_pass http://app_server;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Блокировка скрытых файлов
+        location ~ /\.(?!well-known) {
+            deny all;
+            access_log off;
+            log_not_found off;
+        }
+    }
+}
 ```
