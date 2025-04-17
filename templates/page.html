@@ -132,7 +132,7 @@
             </div>
         </div>
         <div class="form-group">
-            <input type="number" id="ttlday" placeholder="Сколько дней должен жить секрет?">
+            <input type="number" id="ttlday" placeholder="Сколько дней должен жить секрет?" min="1" required>
         </div>
         
         <button class="button" style="background-color: {{ .ButtonColor }};" onclick="createSecret()">{{ .ButtonText }}</button>
@@ -167,16 +167,46 @@
 
         function createSecret() {
             const secret = document.getElementById('secret').value;
-            const ttlday = document.getElementById('ttlday').value;
-            const ttl = ttlday ? parseInt(ttlday) * 86400 : 0;
+            const ttldayInput = document.getElementById('ttlday');
+            let ttlday = ttldayInput.value;
             const fileInput = document.getElementById('file-input');
+            const file = fileInput?.files[0];
             
+            // Устанавливаем значение по умолчанию 7, если поле пустое
+            if (!ttlday) {
+                ttlday = '7';
+            }
+            
+            const ttl = parseInt(ttlday) * 86400;
+            
+            if (!secret && !file) {
+                showToast('Пожалуйста, введите текст или прикрепите файл');
+                return;
+            }
+            
+            // Проверка на валидность числа дней
+            if (parseInt(ttlday) <= 0) {
+                showToast('Пожалуйста, укажите число дней больше нуля');
+                ttldayInput.focus();
+                return;
+            }
+            
+            // Проверка размера файла (если нужен лимит 10MB)
+            if (file && file.size > 10 * 1024 * 1024) {
+                showToast('Размер файла не должен превышать 10 МБ');
+                return;
+            }
+
             const formData = new FormData();
-            formData.append('secret', secret);
+            if (secret) formData.append('secret', secret);
             formData.append('ttl', ttl);
             
-            if (fileInput?.files[0]) {
-                formData.append('file', fileInput.files[0]);
+            if (file) {
+                // Транслитерируем имя файла
+                const newFileName = transliterate(file.name);
+                // Создаем новый File объект с транслитерированным именем
+                const newFile = new File([file], newFileName, { type: file.type });
+                formData.append('file', newFile);
             }
 
             fetch('/api/create', {
@@ -197,6 +227,16 @@
                 console.error('Error:', error);
                 showToast('Ошибка при создании секрета');
             });
+        }
+
+        function transliterate(text) {
+            const rus = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+            const lat = 'a|b|v|g|d|e|e|zh|z|i|i|k|l|m|n|o|p|r|s|t|u|f|kh|ts|ch|sh|shch||y||e|iu|ia|A|B|V|G|D|E|E|Zh|Z|I|I|K|L|M|N|O|P|R|S|T|U|F|Kh|Ts|Ch|Sh|Shch||Y||E|Iu|Ia'.split('|');
+            
+            return text.split('').map(char => {
+                const index = rus.indexOf(char);
+                return index >= 0 ? lat[index] : char;
+            }).join('');
         }
 
         function viewSecret(pageId) {
