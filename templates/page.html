@@ -277,7 +277,7 @@
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             navigator.clipboard.writeText(element.textContent)
-                //.then(() => showToast('Скопировано'))
+                .then(() => showToast('Скопировано'))
                 .catch(err => console.error('Ошибка копирования:', err));
         }
     </script>

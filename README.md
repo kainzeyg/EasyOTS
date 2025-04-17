@@ -10,8 +10,15 @@ EasyOTS — это простое и надёжное решение для од
 ### **Внешний вид приложения**
 Создание секрета \
 ![image](https://github.com/user-attachments/assets/65c62505-32ec-4b1a-b811-837ba52d842e) \
+\
+1. Через /template/page.html ограничено ввод ttl только положительным числом, для API ограничения нет;\
+2. Через /template/page.html выполняется проверка на размер файла, на API она должна ограничиваться Nginx\
+3. Через /template/page.html выполняется транслитерация названия файлов, т.к. русский язык плохо воспринимается для шифрования и для браузеров\
+\
 Получение секрета \
-![image](https://github.com/user-attachments/assets/1081df05-e0fe-4cf0-924b-8d53221d51dd)
+![image](https://github.com/user-attachments/assets/1081df05-e0fe-4cf0-924b-8d53221d51dd)\
+\
+3. Замен вывод уведомлений через класс toast
 
 ---
 
